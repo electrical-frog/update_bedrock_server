@@ -1,27 +1,54 @@
 
 from config import oldVer, newVer, zipDir, insDir, settings 
 import zipfile
+import shutil
+
+
+def edit_line(filename, target_prefix, replacement_line):
+    edited_lines = []
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            if line.startswith(target_prefix):
+                edited_lines.append(replacement_line + "\n")
+            else:
+                edited_lines.append(line)
+
+    with open(filename, 'w') as file:
+        file.writelines(edited_lines)
 
 
 for servername in settings.keys():
-    # ZIPファイルを解凍する
+    
+    # zip解凍
     pathFrom    = f"{zipDir}/bedrock-server-{newVer}.zip"
     pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}"
     with zipfile.ZipFile(pathFrom, 'r') as zipf:
         # 解凍先のフォルダーを指定する（存在しない場合は自動的に作成される）
         zipf.extractall(pathTo)
-
-
-
-    config.settings[servername]
-    print()
-
-    #zip解凍
     
-    #名前変更
+
+    # server.propertiesの編集
+    for key in settings[servername].keys():
+        edit_line(f"{pathTo}/server.properties", key, f"{key}={settings[servername][key]}")
+
+
+    # worldsのコピー
+    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/worlds"
+    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/worlds"
+    try:
+        shutil.copytree(pathFrom, pathTo)
+    except Exception as e:
+        print(f"エラー: {e}")
+
+
+    # start_serverの編集
+    edit_line(f"{insDir}/start_server_{servername}.sh", "cd /root/", f"cd /root/bedrock_server/bedrock-server-{newVer}_{servername}/")
+    
+
+    print("Done")
 
 
 
 
 
-    #creativeコピー
