@@ -2,6 +2,7 @@
 from config import oldVer, newVer, zipDir, insDir, settings 
 import zipfile
 import shutil
+import os
 
 
 def edit_line(filename, target_prefix, replacement_line):
@@ -30,7 +31,7 @@ for servername in settings.keys():
 
     # server.propertiesの編集
     for key in settings[servername].keys():
-        edit_line(f"{pathTo}/server.properties", key, f"{key}={settings[servername][key]}")
+        edit_line(f"{pathTo}/server.properties", f"{key}=", f"{key}={settings[servername][key]}")
 
 
     # worldsのコピー
@@ -41,6 +42,11 @@ for servername in settings.keys():
     except Exception as e:
         print(f"エラー: {e}")
 
+
+    # bedrock_serverのパーミッション設定
+    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/bedrock_server"
+    os.chmod(pathTo, 0o700)
+    
 
     # start_serverの編集
     edit_line(f"{insDir}/start_server_{servername}.sh", "cd /root/", f"cd /root/bedrock_server/bedrock-server-{newVer}_{servername}/")
