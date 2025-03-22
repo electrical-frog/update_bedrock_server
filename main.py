@@ -41,7 +41,16 @@ for servername in settings.keys():
         shutil.copytree(pathFrom, pathTo)
     except Exception as e:
         print(f"エラー: {e}")
-
+    
+    
+    # allowlist.jsonのコピー
+    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/allowlist.json"
+    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/allowlist.json"
+    try:
+        shutil.copy2(pathFrom, pathTo)
+    except Exception as e:
+        print(f"エラー: {e}")
+    
 
     # bedrock_serverのパーミッション設定
     pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/bedrock_server"

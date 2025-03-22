@@ -1,5 +1,6 @@
-oldVer = '1.20.80.05'
-newVer = '1.21.0.03'
+
+oldVer = '1.21.51.02'
+newVer = '1.21.62.01'
 
 zipDir = '/mnt/share02/share'
 insDir = '/root/bedrock_server'
@@ -16,6 +17,13 @@ settings = {
             'difficulty'    :'easy',
             'server-port'   :'19134',
             'server-portv6' :'19135',
+        },
+        'survival2':{
+            'gamemode'      :'survival',
+            'difficulty'    :'easy',
+            'server-port'   :'19136',
+            'server-portv6' :'19137',
+            'allow-list'    :'true',
         },
 }
 
