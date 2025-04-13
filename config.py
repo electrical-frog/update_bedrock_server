@@ -1,6 +1,6 @@
 
-oldVer = '1.21.51.02'
-newVer = '1.21.62.01'
+oldVer = '1.21.62.01'
+newVer = '1.21.70.04'
 
 zipDir = '/mnt/share02/share'
 insDir = '/root/bedrock_server'

@@ -50,7 +50,16 @@ for servername in settings.keys():
         shutil.copy2(pathFrom, pathTo)
     except Exception as e:
         print(f"エラー: {e}")
+
     
+    # permissions.jsonのコピー
+    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/permissions.json"
+    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/permissions.json"
+    try:
+        shutil.copy2(pathFrom, pathTo)
+    except Exception as e:
+        print(f"エラー: {e}")
+
 
     # bedrock_serverのパーミッション設定
     pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/bedrock_server"
