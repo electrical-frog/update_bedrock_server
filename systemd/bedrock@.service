@@ -1,0 +1,19 @@
+[Unit]
+Description={descriptionPrefix} %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory={insDir}/current_%i
+Environment=LD_LIBRARY_PATH=.
+ExecStart={insDir}/current_%i/bedrock_server
+Restart=on-failure
+RestartSec={restartSec}
+KillSignal=SIGTERM
+TimeoutStopSec=30
+StandardOutput=append:/var/log/bedrock_%i.log
+StandardError=append:/var/log/bedrock_%i.log
+
+[Install]
+WantedBy=multi-user.target

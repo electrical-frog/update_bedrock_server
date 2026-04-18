@@ -26,6 +26,16 @@ copyTargets = [
 bedrockServerMode = 0o700
 startScriptPrefix = 'start_server_'
 startScriptCdPrefix = 'cd /root/'
+currentLinkPrefix = 'current_'
+
+restartAfterUpdate = True
+systemctlPath = '/usr/bin/systemctl'
+systemdUnitTemplate = 'bedrock@.service'
+systemdUnitDir = '/etc/systemd/system'
+systemdServicePrefix = 'bedrock@'
+systemdServiceSuffix = '.service'
+systemdDescriptionPrefix = 'Minecraft Bedrock Server'
+systemdRestartSec = 10
 
 settings = {
         'survival':{

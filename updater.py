@@ -36,13 +36,32 @@ def update_start_script(server_name, new_version):
     )
 
 
+def update_current_link(server_name, version):
+    link_path = paths.current_server_link(server_name)
+    target_dir = paths.server_dir(version, server_name)
+    if not target_dir.exists():
+        raise RuntimeError(f"currentリンク先が存在しません: {target_dir}")
+
+    link_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_link = link_path.parent / f".{link_path.name}.tmp"
+    if temporary_link.exists() or temporary_link.is_symlink():
+        temporary_link.unlink()
+
+    temporary_link.symlink_to(target_dir)
+    temporary_link.replace(link_path)
+
+
 def update_server(server_name, server_settings, old_version, new_version):
     destination_dir = paths.server_dir(new_version, server_name)
+    if destination_dir.exists():
+        raise RuntimeError(f"更新先ディレクトリが既に存在します: {destination_dir}")
+
     file_ops.extract_zip(paths.server_zip(new_version), destination_dir)
     update_server_properties(server_name, server_settings, new_version)
     copy_existing_data(server_name, old_version, new_version)
     update_binary_permission(server_name, new_version)
     update_start_script(server_name, new_version)
+    update_current_link(server_name, new_version)
     print(f"Done: {server_name}")
 
 
@@ -96,6 +115,13 @@ def test_update_server():
             assert paths.start_script("survival").read_text(encoding="utf-8").startswith(
                 f"cd {new_dir}/"
             )
+            assert paths.current_server_link("survival").resolve() == new_dir
+            try:
+                update_server("survival", {}, "1.0.0", "2.0.0")
+            except RuntimeError as e:
+                assert "更新先ディレクトリが既に存在します" in str(e)
+            else:
+                raise AssertionError("existing destination should fail")
     finally:
         config.insDir = original_ins_dir
         config.zipDir = original_zip_dir

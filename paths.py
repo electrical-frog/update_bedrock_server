@@ -23,6 +23,10 @@ def start_script(server_name):
     return configured_path(config.insDir) / f"{config.startScriptPrefix}{server_name}.sh"
 
 
+def current_server_link(server_name):
+    return configured_path(config.insDir) / f"{config.currentLinkPrefix}{server_name}"
+
+
 def server_file(version, server_name, filename):
     return server_dir(version, server_name) / filename
 
@@ -42,6 +46,7 @@ def test_paths():
         assert server_dir("1.2.3", "survival") == Path("/tmp/bedrock/bedrock-server-1.2.3_survival")
         assert server_zip("1.2.3") == Path("/repo/downloads/bedrock-server-1.2.3.zip")
         assert start_script("survival") == Path("/tmp/bedrock/start_server_survival.sh")
+        assert current_server_link("survival") == Path("/tmp/bedrock/current_survival")
         assert server_file("1.2.3", "survival", "server.properties") == Path(
             "/tmp/bedrock/bedrock-server-1.2.3_survival/server.properties"
         )

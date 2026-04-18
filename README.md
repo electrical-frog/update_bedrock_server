@@ -12,6 +12,9 @@ Linux 上の Minecraft Bedrock Dedicated Server を、ワールドデータを�
 - `server.properties` をサーバーごとの設定で更新
 - `bedrock_server` に実行権限を付与
 - `start_server_<name>.sh` の起動先を新バージョンへ更新
+- systemd service で Bedrock Server を管理
+- 更新されたサーバーだけ更新後に `systemctl restart`
+- 既に最新バージョンのサーバーはスキップ
 - 複数サーバー構成に対応
 
 ## Requirements
@@ -36,6 +39,9 @@ https://www.minecraft.net/ja-jp/download/server/bedrock
 ├── updater.py       # 1サーバー分の更新処理
 ├── file_ops.py      # ZIP展開、コピー、行置換
 ├── paths.py         # パス生成
+├── service.py       # systemd restart 処理
+├── install_systemd.py # systemd unit のインストール補助
+├── systemd/         # systemd unit template
 └── downloads/       # ダウンロード済みZIPの保存先
 ```
 
@@ -111,6 +117,84 @@ settings = {
 
 旧バージョンのディレクトリは削除しません。
 
+## systemd Setup
+
+このリポジトリは systemd template unit を使ってサーバーを管理します。設定ファイルの実体は1つです。
+
+```text
+/etc/systemd/system/bedrock@.service
+```
+
+`bedrock@.service` の `@` は template unit を表します。サービス名の `@` の後ろにある文字列が `%i` に入ります。
+
+```text
+bedrock@survival.service  -> %i = survival
+bedrock@creative.service  -> %i = creative
+bedrock@survival2.service -> %i = survival2
+```
+
+unit 内では `%i` を使って、サーバーごとの `current_<server>` symlink を起動します。
+
+```ini
+WorkingDirectory=/root/bedrock_server/current_%i
+ExecStart=/root/bedrock_server/current_%i/bedrock_server
+```
+
+そのため `bedrock@survival.service` は、実質的に次を起動します。
+
+```text
+/root/bedrock_server/current_survival/bedrock_server
+```
+
+サービスはサーバーごとに個別管理できます。
+
+```text
+bedrock@survival.service
+bedrock@creative.service
+bedrock@survival2.service
+```
+
+更新時には `current_<server>` symlink が新バージョンのディレクトリへ切り替わります。
+
+systemd unit をインストールし、既存の Bedrock 用 `@reboot` crontab を削除するには次を実行します。
+
+```bash
+python3 install_systemd.py
+```
+
+インストール後、サービスを起動します。
+
+```bash
+systemctl start bedrock@survival.service
+systemctl start bedrock@creative.service
+systemctl start bedrock@survival2.service
+```
+
+状態確認:
+
+```bash
+systemctl status bedrock@survival.service
+systemctl is-enabled bedrock@survival.service
+systemctl cat bedrock@survival.service
+```
+
+`is-enabled` が `enabled` なら、ホスト再起動後も自動起動します。
+
+ログ確認:
+
+```bash
+journalctl -u bedrock@survival.service -f
+journalctl -u bedrock@survival.service -b
+```
+
+`-f` は追跡表示、`-b` は現在のブート以降のログ表示です。
+
+個別 restart:
+
+```bash
+systemctl restart bedrock@survival.service
+```
+
 ## Usage
 
 サーバーを停止してから実行してください。
@@ -130,11 +214,15 @@ creative: 1.21.120.4 -> 1.26.14.1
 Done: creative
 ```
 
+既に最新バージョンの場合は、そのサーバーの更新をスキップします。
+
+```text
+survival: already latest (1.26.14.1)
+```
+
 更新後、必要に応じてサーバーを再起動します。
 
-```bash
-/usr/bin/bash /root/bedrock_server/start_server_survival.sh
-```
+`config.py` の `restartAfterUpdate = True` の場合、更新されたサーバーだけ `systemctl restart` されます。既に最新でスキップされたサーバーは再起動しません。
 
 ## Safety Notes
 
@@ -142,7 +230,8 @@ Done: creative
 - `worlds/` はコピーされますが、念のため事前バックアップを推奨します。
 - 旧バージョンのサーバーディレクトリは削除されません。
 - `start_server_<name>.sh` は新バージョンのディレクトリを向くように書き換えられます。
-- 新バージョンの展開先が既に存在する場合、コピー処理でエラーになることがあります。
+- `current_<name>` symlink は新バージョンのディレクトリを向くように更新されます。
+- 新バージョンの展開先が既に存在する場合、意図しない上書きを避けるため中断します。
 
 ## Testing
 
@@ -154,13 +243,15 @@ python3 file_ops.py
 python3 versions.py
 python3 downloader.py
 python3 updater.py
+python3 service.py
+python3 install_systemd.py --test
 python3 main.py --test
 ```
 
 構文チェック:
 
 ```bash
-python3 -m py_compile main.py config.py paths.py file_ops.py versions.py downloader.py updater.py
+python3 -m py_compile main.py config.py paths.py file_ops.py versions.py downloader.py updater.py service.py install_systemd.py
 ```
 
 最新版 URL 解決だけを確認する場合:
