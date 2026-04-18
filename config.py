@@ -1,9 +1,31 @@
 
-oldVer = '1.21.62.01'
-newVer = '1.21.70.04'
+from pathlib import Path
 
-zipDir = '/mnt/share02/share'
+
+projectDir = Path(__file__).resolve().parent
+
+oldVer = 'auto'
+newVer = 'latest'
+
+zipDir = './downloads'
 insDir = '/root/bedrock_server'
+
+downloadLinksApiUrl = 'https://net-secondary.web.minecraft-services.net/api/v1.0/download/links'
+downloadType = 'serverBedrockLinux'
+downloadUserAgent = 'update_bedrock_server/1.0'
+apiTimeoutSec = 30
+downloadTimeoutSec = 300
+
+serverBinaryName = 'bedrock_server'
+serverPropertiesName = 'server.properties'
+copyTargets = [
+        'worlds',
+        'allowlist.json',
+        'permissions.json',
+]
+bedrockServerMode = 0o700
+startScriptPrefix = 'start_server_'
+startScriptCdPrefix = 'cd /root/'
 
 settings = {
         'survival':{
@@ -26,5 +48,3 @@ settings = {
             'allow-list'    :'true',
         },
 }
-
-

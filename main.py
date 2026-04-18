@@ -1,78 +1,53 @@
+import sys
+import urllib.error
 
-from config import oldVer, newVer, zipDir, insDir, settings 
-import zipfile
-import shutil
-import os
-
-
-def edit_line(filename, target_prefix, replacement_line):
-    edited_lines = []
-    with open(filename, 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            if line.startswith(target_prefix):
-                edited_lines.append(replacement_line + "\n")
-            else:
-                edited_lines.append(line)
-
-    with open(filename, 'w') as file:
-        file.writelines(edited_lines)
+import config
+import downloader
+import updater
+import versions
 
 
-for servername in settings.keys():
-    
-    # zip解凍
-    pathFrom    = f"{zipDir}/bedrock-server-{newVer}.zip"
-    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}"
-    with zipfile.ZipFile(pathFrom, 'r') as zipf:
-        # 解凍先のフォルダーを指定する（存在しない場合は自動的に作成される）
-        zipf.extractall(pathTo)
-    
-
-    # server.propertiesの編集
-    for key in settings[servername].keys():
-        edit_line(f"{pathTo}/server.properties", f"{key}=", f"{key}={settings[servername][key]}")
-
-
-    # worldsのコピー
-    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/worlds"
-    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/worlds"
+def update_servers():
     try:
-        shutil.copytree(pathFrom, pathTo)
-    except Exception as e:
-        print(f"エラー: {e}")
-    
-    
-    # allowlist.jsonのコピー
-    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/allowlist.json"
-    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/allowlist.json"
+        new_version = downloader.prepare_server_zip()
+    except urllib.error.URLError as e:
+        raise SystemExit(f"ダウンロードサービスへ接続できませんでした: {e}") from e
+
+    for server_name, server_settings in config.settings.items():
+        old_version = versions.resolve_old_version(server_name, new_version)
+        print(f"{server_name}: {old_version} -> {new_version}")
+        updater.update_server(server_name, server_settings, old_version, new_version)
+
+
+def test_update_servers_uses_orchestration():
+    calls = []
+
+    original_settings = config.settings
+    original_prepare_server_zip = downloader.prepare_server_zip
+    original_resolve_old_version = versions.resolve_old_version
+    original_update_server = updater.update_server
     try:
-        shutil.copy2(pathFrom, pathTo)
-    except Exception as e:
-        print(f"エラー: {e}")
+        config.settings = {"survival": {"gamemode": "survival"}}
+        downloader.prepare_server_zip = lambda: "2.0.0"
+        versions.resolve_old_version = lambda server_name, new_version: "1.0.0"
 
-    
-    # permissions.jsonのコピー
-    pathFrom    = f"{insDir}/bedrock-server-{oldVer}_{servername}/permissions.json"
-    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/permissions.json"
-    try:
-        shutil.copy2(pathFrom, pathTo)
-    except Exception as e:
-        print(f"エラー: {e}")
+        def fake_update_server(server_name, server_settings, old_version, new_version):
+            calls.append((server_name, server_settings, old_version, new_version))
 
+        updater.update_server = fake_update_server
+        update_servers()
 
-    # bedrock_serverのパーミッション設定
-    pathTo      = f"{insDir}/bedrock-server-{newVer}_{servername}/bedrock_server"
-    os.chmod(pathTo, 0o700)
-    
-
-    # start_serverの編集
-    edit_line(f"{insDir}/start_server_{servername}.sh", "cd /root/", f"cd /root/bedrock_server/bedrock-server-{newVer}_{servername}/")
-    
-
-    print("Done")
+        assert calls == [("survival", {"gamemode": "survival"}, "1.0.0", "2.0.0")]
+    finally:
+        config.settings = original_settings
+        downloader.prepare_server_zip = original_prepare_server_zip
+        versions.resolve_old_version = original_resolve_old_version
+        updater.update_server = original_update_server
 
 
-
-
-
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        test_update_servers_uses_orchestration()
+        print("main.py orchestration test passed")
+    else:
+        update_servers()
