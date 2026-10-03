@@ -16,6 +16,14 @@ def unit_template_destination():
     return Path(config.systemdUnitDir) / config.systemdUnitTemplate
 
 
+def update_unit_source(unit_name):
+    return config.projectDir / "systemd" / unit_name
+
+
+def update_unit_destination(unit_name):
+    return Path(config.systemdUnitDir) / unit_name
+
+
 def install_unit_template():
     source = unit_template_source()
     destination = unit_template_destination()
@@ -29,6 +37,33 @@ def install_unit_template():
     )
     destination.write_text(content, encoding="utf-8")
     print(f"Installed: {destination}")
+
+
+def install_update_unit(unit_name, **template_values):
+    source = update_unit_source(unit_name)
+    if not source.exists():
+        raise RuntimeError(f"systemd unit が見つかりません: {source}")
+
+    content = source.read_text(encoding="utf-8").format(**template_values)
+    destination = update_unit_destination(unit_name)
+    destination.write_text(content, encoding="utf-8")
+    print(f"Installed: {destination}")
+
+
+def install_update_units():
+    install_update_unit(
+        config.updateServiceUnit,
+        projectDir=str(config.projectDir),
+        pythonPath=config.pythonPath,
+    )
+    install_update_unit(
+        config.updateTimerUnit,
+        updateSchedule=config.updateSchedule,
+    )
+    systemctl("daemon-reload")
+    systemctl("enable", config.updateTimerUnit)
+    systemctl("start", config.updateTimerUnit)
+    print(f"Timer schedule: {config.updateSchedule}")
 
 
 def systemctl(*args):
@@ -82,6 +117,7 @@ def install_systemd_services():
     systemctl("daemon-reload")
     enable_services()
     remove_cron_reboot_lines()
+    install_update_units()
     print("systemd setup complete. Start or restart services with systemctl.")
 
 
@@ -90,9 +126,22 @@ def test_unit_paths():
     assert unit_template_destination() == Path("/etc/systemd/system/bedrock@.service")
 
 
+def test_update_unit_paths():
+    assert update_unit_source(config.updateServiceUnit) == (
+        config.projectDir / "systemd" / "bedrock-update.service"
+    )
+    assert update_unit_destination(config.updateServiceUnit) == Path(
+        "/etc/systemd/system/bedrock-update.service"
+    )
+    assert update_unit_destination(config.updateTimerUnit) == Path(
+        "/etc/systemd/system/bedrock-update.timer"
+    )
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--test":
         test_unit_paths()
+        test_update_unit_paths()
         print("install_systemd.py tests passed")
     else:
         install_systemd_services()

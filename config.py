@@ -28,6 +28,14 @@ startScriptPrefix = 'start_server_'
 startScriptCdPrefix = 'cd /root/'
 currentLinkPrefix = 'current_'
 
+backupBeforeUpdate = True
+backupDir = 'backups'
+backupKeep = 3
+
+cleanupAfterUpdate = True
+oldKeep = 2
+cleanupVerifyService = True
+
 restartAfterUpdate = True
 systemctlPath = '/usr/bin/systemctl'
 systemdUnitTemplate = 'bedrock@.service'
@@ -36,6 +44,11 @@ systemdServicePrefix = 'bedrock@'
 systemdServiceSuffix = '.service'
 systemdDescriptionPrefix = 'Minecraft Bedrock Server'
 systemdRestartSec = 10
+
+updateServiceUnit = 'bedrock-update.service'
+updateTimerUnit = 'bedrock-update.timer'
+pythonPath = '/usr/bin/python3'
+updateSchedule = '*-*-* 05:00:00'
 
 settings = {
         'survival':{

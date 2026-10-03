@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer for Minecraft Bedrock Server update
+
+[Timer]
+OnCalendar={updateSchedule}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

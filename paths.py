@@ -27,6 +27,13 @@ def current_server_link(server_name):
     return configured_path(config.insDir) / f"{config.currentLinkPrefix}{server_name}"
 
 
+def backup_dir(server_name):
+    backup_root = Path(config.backupDir)
+    if not backup_root.is_absolute():
+        backup_root = configured_path(config.insDir) / backup_root
+    return backup_root / server_name
+
+
 def server_file(version, server_name, filename):
     return server_dir(version, server_name) / filename
 
@@ -50,6 +57,7 @@ def test_paths():
         assert server_file("1.2.3", "survival", "server.properties") == Path(
             "/tmp/bedrock/bedrock-server-1.2.3_survival/server.properties"
         )
+        assert backup_dir("survival") == Path("/tmp/bedrock/backups/survival")
     finally:
         config.insDir = original_ins_dir
         config.zipDir = original_zip_dir

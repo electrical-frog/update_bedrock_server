@@ -4,8 +4,11 @@
 
 This repository contains a small Python utility for updating local Minecraft Bedrock server installations.
 
-- `main.py`: update script. It extracts the new Bedrock server ZIP, applies `server.properties` settings, copies world and access-control files, updates permissions, and rewrites start scripts.
-- `config.py`: local version numbers, ZIP/install directories, and per-server settings. Treat this as environment-specific configuration.
+- `main.py`: update script. It resolves and downloads the new Bedrock server ZIP, backs up world and access-control data, applies `server.properties` settings, copies world and access-control files, updates permissions, and rewrites start scripts.
+- `config.py`: local version numbers, ZIP/install directories, per-server settings, and backup/timer options. Treat this as environment-specific configuration.
+- `backup.py`: pre-update backup of `worlds/` etc. with generation pruning.
+- `clean.py`: guarded cleanup of old version directories (never removes the directory the `current_<name>` symlink points to).
+- `systemd/`: unit templates for the servers (`bedrock@.service`) and the scheduled updater (`bedrock-update.service` / `bedrock-update.timer`).
 - `README.md`: user-facing setup and operation notes.
 
 There is currently no dedicated `tests/` directory, package metadata, or static asset tree.

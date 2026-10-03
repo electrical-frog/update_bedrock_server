@@ -1,0 +1,7 @@
+[Unit]
+Description=Update Minecraft Bedrock Servers
+
+[Service]
+Type=oneshot
+WorkingDirectory={projectDir}
+ExecStart={pythonPath} main.py

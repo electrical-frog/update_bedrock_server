@@ -1,6 +1,7 @@
 import sys
 import urllib.error
 
+import clean
 import config
 import downloader
 import service
@@ -29,6 +30,13 @@ def update_servers():
 
     service.restart_servers(updated_servers)
 
+    if config.cleanupAfterUpdate:
+        for server_name in config.settings:
+            try:
+                clean.cleanup_server(server_name)
+            except Exception as e:
+                print(f"クリーンアップエラー ({server_name}): {e}")
+
 
 def test_update_servers_uses_orchestration():
     calls = []
@@ -39,6 +47,7 @@ def test_update_servers_uses_orchestration():
     original_resolve_old_version = versions.resolve_old_version
     original_update_server = updater.update_server
     original_restart_servers = service.restart_servers
+    original_cleanup_server = clean.cleanup_server
     try:
         config.settings = {"survival": {"gamemode": "survival"}}
         downloader.prepare_server_zip = lambda: "2.0.0"
@@ -50,11 +59,13 @@ def test_update_servers_uses_orchestration():
 
         updater.update_server = fake_update_server
         service.restart_servers = lambda server_names: calls.append(("restart", server_names))
+        clean.cleanup_server = lambda server_name: calls.append(("cleanup", server_name))
         update_servers()
 
         assert calls == [
             ("survival", {"gamemode": "survival"}, "1.0.0", "2.0.0"),
             ("restart", ["survival"]),
+            ("cleanup", "survival"),
         ]
     finally:
         config.settings = original_settings
@@ -63,6 +74,7 @@ def test_update_servers_uses_orchestration():
         versions.resolve_old_version = original_resolve_old_version
         updater.update_server = original_update_server
         service.restart_servers = original_restart_servers
+        clean.cleanup_server = original_cleanup_server
 
 
 def test_update_servers_skips_latest():
@@ -75,6 +87,7 @@ def test_update_servers_skips_latest():
     original_update_server = updater.update_server
     original_update_current_link = updater.update_current_link
     original_restart_servers = service.restart_servers
+    original_cleanup_server = clean.cleanup_server
     try:
         config.settings = {"survival": {"gamemode": "survival"}}
         downloader.prepare_server_zip = lambda: "2.0.0"
@@ -87,9 +100,10 @@ def test_update_servers_skips_latest():
 
         updater.update_server = fake_update_server
         service.restart_servers = lambda server_names: calls.append(("restart", server_names))
+        clean.cleanup_server = lambda server_name: calls.append(("cleanup", server_name))
         update_servers()
 
-        assert calls == [("restart", [])]
+        assert calls == [("restart", []), ("cleanup", "survival")]
     finally:
         config.settings = original_settings
         downloader.prepare_server_zip = original_prepare_server_zip
@@ -98,6 +112,7 @@ def test_update_servers_skips_latest():
         updater.update_server = original_update_server
         updater.update_current_link = original_update_current_link
         service.restart_servers = original_restart_servers
+        clean.cleanup_server = original_cleanup_server
 
 
 if __name__ == "__main__":

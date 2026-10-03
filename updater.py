@@ -1,5 +1,6 @@
 import os
 
+import backup
 import config
 import file_ops
 import paths
@@ -56,6 +57,7 @@ def update_server(server_name, server_settings, old_version, new_version):
     if destination_dir.exists():
         raise RuntimeError(f"更新先ディレクトリが既に存在します: {destination_dir}")
 
+    backup.backup_server(server_name, old_version)
     file_ops.extract_zip(paths.server_zip(new_version), destination_dir)
     update_server_properties(server_name, server_settings, new_version)
     copy_existing_data(server_name, old_version, new_version)
@@ -116,6 +118,12 @@ def test_update_server():
                 f"cd {new_dir}/"
             )
             assert paths.current_server_link("survival").resolve() == new_dir
+            backup_root = paths.backup_dir("survival")
+            backups = sorted(path for path in backup_root.iterdir() if path.is_dir())
+            assert len(backups) == 1
+            assert (backups[0] / "worlds" / "level.dat").read_text(encoding="utf-8") == "world"
+            assert (backups[0] / "allowlist.json").exists()
+            assert (backups[0] / "permissions.json").exists()
             try:
                 update_server("survival", {}, "1.0.0", "2.0.0")
             except RuntimeError as e:
