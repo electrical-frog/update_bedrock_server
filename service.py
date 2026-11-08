@@ -7,8 +7,15 @@ def service_name(server_name):
     return f"{config.systemdServicePrefix}{server_name}{config.systemdServiceSuffix}"
 
 
-def systemctl(*args):
+def systemctl_command(*args):
     command = [config.systemctlPath, *args]
+    if config.useSudoForSystemctl:
+        command = [config.sudoPath, *command]
+    return command
+
+
+def systemctl(*args):
+    command = systemctl_command(*args)
     print(" ".join(command))
     subprocess.run(command, check=True)
 
@@ -23,6 +30,26 @@ def restart_servers(server_names):
 
 def test_service_name():
     assert service_name("survival") == "bedrock@survival.service"
+
+
+def test_systemctl_command_sudo_prefix():
+    original_use_sudo = config.useSudoForSystemctl
+    try:
+        config.useSudoForSystemctl = True
+        assert systemctl_command("restart", "bedrock@survival.service") == [
+            "/usr/bin/sudo",
+            "/usr/bin/systemctl",
+            "restart",
+            "bedrock@survival.service",
+        ]
+        config.useSudoForSystemctl = False
+        assert systemctl_command("restart", "bedrock@survival.service") == [
+            "/usr/bin/systemctl",
+            "restart",
+            "bedrock@survival.service",
+        ]
+    finally:
+        config.useSudoForSystemctl = original_use_sudo
 
 
 def test_restart_servers():
@@ -50,5 +77,6 @@ def test_restart_servers():
 
 if __name__ == "__main__":
     test_service_name()
+    test_systemctl_command_sudo_prefix()
     test_restart_servers()
     print("service.py tests passed")

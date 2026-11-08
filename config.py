@@ -8,7 +8,7 @@ oldVer = 'auto'
 newVer = 'latest'
 
 zipDir = './downloads'
-insDir = '/root/bedrock_server'
+insDir = '/home/andie/bedrock_server'
 
 downloadLinksApiUrl = 'https://net-secondary.web.minecraft-services.net/api/v1.0/download/links'
 downloadType = 'serverBedrockLinux'
@@ -25,7 +25,7 @@ copyTargets = [
 ]
 bedrockServerMode = 0o700
 startScriptPrefix = 'start_server_'
-startScriptCdPrefix = 'cd /root/'
+startScriptCdPrefix = 'cd /home/andie/'
 currentLinkPrefix = 'current_'
 
 backupBeforeUpdate = True
@@ -38,6 +38,12 @@ cleanupVerifyService = True
 
 restartAfterUpdate = True
 systemctlPath = '/usr/bin/systemctl'
+sudoPath = '/usr/bin/sudo'
+# 非 root ユーザーで動かす場合、systemctl は限定 NOPASSWD sudo 経由で呼ぶ
+useSudoForSystemctl = True
+# bedrock サーバーと更新サービスを動かすユーザー
+serverUser = 'andie'
+serverGroup = 'andie'
 systemdUnitTemplate = 'bedrock@.service'
 systemdUnitDir = '/etc/systemd/system'
 systemdServicePrefix = 'bedrock@'

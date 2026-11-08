@@ -41,7 +41,7 @@ def data_copied_to_running(running_dir, old_dir):
 
 
 def is_server_active(server_name):
-    command = [config.systemctlPath, "is-active", service.service_name(server_name)]
+    command = service.systemctl_command("is-active", service.service_name(server_name))
     result = subprocess.run(command, check=False, capture_output=True, text=True)
     return result.returncode == 0
 

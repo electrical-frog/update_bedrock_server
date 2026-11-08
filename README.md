@@ -73,13 +73,15 @@ oldVer = 'auto'
 newVer = 'latest'
 
 zipDir = './downloads'
-insDir = '/root/bedrock_server'
+insDir = '/home/andie/bedrock_server'
 ```
 
 - `oldVer = 'auto'`: `insDir` 配下の `bedrock-server-<version>_<server>` から最新の既存バージョンをコピー元にします。
 - `newVer = 'latest'`: 公式サービスから最新の Linux 版 ZIP URL を解決してダウンロードします。
 - `zipDir`: Bedrock Server ZIP の保存先です。相対パスはこのリポジトリのルート基準です。
 - `insDir`: Bedrock Server のインストール先です。
+- `serverUser` / `serverGroup`: サーバーと更新サービスを動かすユーザー・グループです。unit テンプレートの `User=` / `Group=` に入ります。
+- `useSudoForSystemctl`: `True` の場合、スクリプト内の systemctl 呼び出しは `sudo` 経由で行われます。非 root ユーザーで動かす場合は限定 NOPASSWD の sudoers 設定が必要です（「非 root ユーザーでの実行」を参照）。
 
 サーバーごとの設定は `settings` に定義します。
 
@@ -134,7 +136,7 @@ cleanupVerifyService = True
 このツールは、既存サーバーが次の形式で配置されている前提で動きます。
 
 ```text
-/root/bedrock_server/
+/home/andie/bedrock_server/
 ├── bedrock-server-1.21.120.4_survival/
 ├── bedrock-server-1.21.120.4_creative/
 ├── start_server_survival.sh
@@ -144,7 +146,7 @@ cleanupVerifyService = True
 更新後は次のような新ディレクトリが作られます。
 
 ```text
-/root/bedrock_server/
+/home/andie/bedrock_server/
 ├── bedrock-server-1.21.120.4_survival/
 ├── bedrock-server-1.26.14.1_survival/
 ├── backups/
@@ -173,14 +175,16 @@ bedrock@survival2.service -> %i = survival2
 unit 内では `%i` を使って、サーバーごとの `current_<server>` symlink を起動します。
 
 ```ini
-WorkingDirectory=/root/bedrock_server/current_%i
-ExecStart=/root/bedrock_server/current_%i/bedrock_server
+User=andie
+Group=andie
+WorkingDirectory=/home/andie/bedrock_server/current_%i
+ExecStart=/home/andie/bedrock_server/current_%i/bedrock_server
 ```
 
 そのため `bedrock@survival.service` は、実質的に次を起動します。
 
 ```text
-/root/bedrock_server/current_survival/bedrock_server
+/home/andie/bedrock_server/current_survival/bedrock_server
 ```
 
 サービスはサーバーごとに個別管理できます。
@@ -226,11 +230,32 @@ journalctl -u bedrock@survival.service -b
 
 `-f` は追跡表示、`-b` は現在のブート以降のログ表示です。
 
+サーバー本体のログはファイルに直接書かれます（journal には出ません）。
+
+```text
+insDir/logs/bedrock_<name>.log
+例: /home/andie/bedrock_server/logs/bedrock_survival.log
+```
+
 個別 restart:
 
 ```bash
 systemctl restart bedrock@survival.service
 ```
+
+## 非 root ユーザーでの実行
+
+unit は `config.py` の `serverUser` / `serverGroup` を `User=` / `Group=` として使用します。
+スクリプト内の systemctl 呼び出し（restart / is-active）も非 root ユーザーで走るため、
+限定 NOPASSWD の sudoers を用意します。
+
+```text
+# /etc/sudoers.d/bedrock-andie（パーミッション 0440）
+andie ALL=(root) NOPASSWD: /usr/bin/systemctl restart bedrock@*.service
+andie ALL=(root) NOPASSWD: /usr/bin/systemctl is-active bedrock@*.service
+```
+
+配置後は `visudo -cf /etc/sudoers.d/bedrock-andie` で構文を確認してください。
 
 ## 定期実行（systemd timer）
 

@@ -92,7 +92,7 @@ def test_update_server():
             (old_dir / "permissions.json").write_text("[]", encoding="utf-8")
 
             paths.start_script("survival").write_text(
-                "cd /root/old_server/\n./bedrock_server\n",
+                f"{config.startScriptCdPrefix}old_server/\n./bedrock_server\n",
                 encoding="utf-8",
             )
 

@@ -34,6 +34,8 @@ def install_unit_template():
         descriptionPrefix=config.systemdDescriptionPrefix,
         insDir=config.insDir.rstrip("/"),
         restartSec=config.systemdRestartSec,
+        serverUser=config.serverUser,
+        serverGroup=config.serverGroup,
     )
     destination.write_text(content, encoding="utf-8")
     print(f"Installed: {destination}")
@@ -55,6 +57,8 @@ def install_update_units():
         config.updateServiceUnit,
         projectDir=str(config.projectDir),
         pythonPath=config.pythonPath,
+        serverUser=config.serverUser,
+        serverGroup=config.serverGroup,
     )
     install_update_unit(
         config.updateTimerUnit,
